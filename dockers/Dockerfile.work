@@ -1,0 +1,7 @@
+FROM xylearn/kernel-hack
+
+
+# COPY ./scripts ./scripts
+# COPY ./downloads ./downloads
+# COPY ./work ./work
+WORKDIR /root/o
