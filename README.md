@@ -51,11 +51,13 @@ The following script will create a filesystem image for qemu emulation under `im
 ```
 scripts/disk-build.sh
 ```
-If you work on linux, you can directly run this script, However you should preinstall some requirement package. See [Syzkaller document](https://github.com/google/syzkaller/blob/master/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md).
+If you work on Linux, you can directly run this script, However you should preinstall some requirement package. See [Syzkaller document](https://github.com/google/syzkaller/blob/master/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md).
+
+If you work on Windows or MacOS, you'd better run this script in docker shell.
 
 
 ### Prepare & Build Kernel Source
-First
+First run the following script
 ```
 scripts/kernel-source-prepare.sh IDEN
 ```
@@ -65,7 +67,7 @@ Then build kernel with following script
 ```
 scripts/kernel-build.sh IDEN
 ```
-Note that, MacOS/Windows should execute this script in docker shell described above. Linux should either install the essential tools or use the docker for building.
+Note that, MacOS/Windows should execute this script in docker shell. Linux should either install the essential tools or use the docker for building kernel image.
 
 This will build a kernel image. The building process can be modified for different purposes.
 
