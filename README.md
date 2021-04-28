@@ -25,13 +25,14 @@ dockers
                     # modified for incremental customization
 ```
 
+---
 
 ## Workflow
 
 Note: IDEN below is either a tag like `v4.14` or a commit number like `acd3d28594536e9096c1ea76c5867d8a68babef6`, which specifies the kernel version.
 
 
-### (Optional) Building & Running docker
+### 1. (Optional) Building & Running docker
 Not necessary on Linux, because docker is used for building kernel.
 First build docker with
 ```bash
