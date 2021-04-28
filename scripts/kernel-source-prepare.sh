@@ -21,11 +21,14 @@ if [[ "$unamestr" == 'Darwin' ]]; then
   if [[ ! -e $IMAGE ]]; then
     hdiutil create -type SPARSE -fs 'Case-sensitive Journaled HFS+' -size 100g -volname sources $IMAGE
   fi
-  hdiutil attach $IMAGE
+  if [[ ! -e $SOURCE_DIR ]]; then
+    ln -s /Volumes/sources $SOURCE_DIR
+  fi
+  hdiutil attach $IMAGE >/dev/null 2>&1
 else
   # Just create a directory
-  if [[ ! -d $ROOT/sources ]]; then
-    mkdir -p $ROOT/sources
+  if [[ ! -d $SOURCE_DIR ]]; then
+    mkdir -p $SOURCE_DIR
   fi
 fi
 
