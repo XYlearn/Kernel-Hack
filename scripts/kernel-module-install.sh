@@ -1,5 +1,5 @@
 #!/bin/bash
-ROOT="$(dirname $0)/.."
+ROOT=`realpath $(dirname $0)/..`
 IMAGE_DIR=$ROOT/images
 
 if [[ $# != 1 ]]; then
@@ -15,4 +15,9 @@ if [[ ! -d $SOURCE ]];then
   exit -1
 fi
 
-scp -i $ROOT/images/ssh.id_rsa -P 10021 -o "StrictHostKeyChecking no" -prq $SOURCE root@localhost:/
+ssh_execute() {
+  ssh -i $ROOT/images/ssh.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost "$@"
+}
+
+cd $SOURCE/.. && tar cf - lib | ssh_execute 'cd / && tar xf -'
+ssh_execute 'unlink /lib/modules/*/build /lib/modules/*/source'
