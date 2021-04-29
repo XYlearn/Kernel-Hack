@@ -3,7 +3,7 @@
 RELEASE=stretch
 
 SCRIPT_DIR=$(dirname $0)
-ROOT="$SCRIPT_DIR/.."
+ROOT=`realpath $SCRIPT_DIR/..`
 
 pushd () {
     command pushd "$@" > /dev/null
