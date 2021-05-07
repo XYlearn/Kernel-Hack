@@ -7,6 +7,9 @@ RUN dpkg --add-architecture i386 && apt-get update
 # install basic libs and tools
 RUN apt-get install -y build-essential gcc-multilib g++-multilib nasm bc
 
+# These libs and tools are necessary for Linux 5.x
+RUN apt-get install -y flex bison libelf-dev libssl-dev kmod
+
 # install build tools
 RUN apt-get install -y ninja-build cmake
 
@@ -47,8 +50,8 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-# create-image
-
+# install tools for kernel pacakge building
+# RUN apt-get install -y --force-yes fakeroot kernel-package
 
 # clean
 # RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
