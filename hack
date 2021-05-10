@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ROOT=`realpath $(dirname $BASH_SOURCE)/..`
+ROOT=`realpath $(dirname $BASH_SOURCE)`
 # SCRIPT_DIR=$ROOT/scripts
 IMAGE_DIR=$ROOT/images
 DOWNLOAD_DIR=$ROOT/downloads
