@@ -20,4 +20,6 @@ ssh_execute() {
 }
 
 cd $SOURCE/.. && tar cf - lib | ssh_execute 'cd / && tar xf -'
-ssh_execute 'unlink /lib/modules/*/build /lib/modules/*/source'
+ssh_execute 'cd /lib/modules/* && unlink build && unlink source && mkdir source && ln -s ./source ./build'
+cd $ROOT/sources/$IDEN && tar cf - . | ssh_execute 'cd /lib/modules/*/source && tar xf -'
+
