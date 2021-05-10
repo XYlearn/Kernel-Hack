@@ -100,3 +100,7 @@ or sftp to int with
 ```
 scripts/kernel-sftp.sh
 ``` 
+you can also use a helper script to send file or directories to the running qemu instance
+```
+scripts/kernel-sync.sh SRC [DST] # DST is optional, the file will be extracted to /root by default
+```
