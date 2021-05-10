@@ -1,27 +1,17 @@
 # Kernel-Hack
 My scripts for kernel hacking
 
-## Scripts Introduction
+## Tree
+
+The core files are listed below
 
 ```
-scripts                         
-├── disk-build.sh            # build a debian filesystem image
-├── docker-build.sh          # build a docker for kernel building
-|                            # on Windows/MacOS
-├── docker-run.sh            # run the docker
-├── kernel-build.sh          # build kernel
-├── kernel-module-install.sh # install module into the running 
-|                            # kernel filesystem
-├── kernel-run.sh            # run built kernel on the debian filesystem
-├── kernel-sftp.sh           # sftp to running kernel
-├── kernel-source-prepare.sh # download and extract source code 
-|                            # of kernel
-└── kernel-ssh.sh            # ssh to running kernel
-
-dockers
-├── Dockerfile      # Dockerfile for kernel building container on 
-|                   # Windows/MacOS
-└── Dockerfile.work # Dockerfile for working container, it can be   
+.
+├── hack                # manager script
+└── dockers
+    ├── Dockerfile      # Dockerfile for kernel building container on 
+    |                   # Windows/MacOS
+    └── Dockerfile.work # Dockerfile for working container, it can be   
                     # modified for incremental customization
 ```
 
@@ -36,13 +26,13 @@ Note: IDEN below is either a tag like `v4.14` or a commit number like `acd3d2859
 Not necessary on Linux, because docker is used for building kernel.
 First build docker with
 ```bash
-scripts/docker-build.sh
+./hack docker-build
 ```
 This will create a docker image, which is needed for kernel building in MacOS/Windows.
 
 Then run the docker with
 ```bash
-scripts/docker-run.sh
+./hack docker-run
 ```
 This will create a docker image for work, run a container on it (which will be removed when exiting), and spawn a shell.
 
@@ -50,7 +40,7 @@ This will create a docker image for work, run a container on it (which will be r
 ### Build Disk Image
 The following script will create a filesystem image for qemu emulation under `images`.
 ```
-scripts/disk-build.sh
+./hack disk-build
 ```
 If you work on Linux, you can directly run this script, However you should preinstall some requirement package. See [Syzkaller document](https://github.com/google/syzkaller/blob/master/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md).
 
@@ -60,13 +50,13 @@ If you work on Windows or MacOS, you'd better run this script in docker shell.
 ### Prepare & Build Kernel Source
 First run the following script
 ```
-scripts/kernel-source-prepare.sh IDEN
+./hack kernel-source-prepare IDEN
 ```
 This will download kernel source of version specified by IDEN to `downloads` directory. And then the downloaded source code will be extracted to `sources` directory.
 
 Then build kernel with following script
 ```
-scripts/kernel-build.sh IDEN
+./hack kernel-build IDEN
 ```
 Note that, MacOS/Windows should execute this script in docker shell. Linux should either install the essential tools or use the docker for building kernel image.
 
@@ -77,7 +67,7 @@ This will build a kernel image. The building process can be modified for differe
 First you should install [QEMU](https://www.qemu.org).
 Then run kernel with 
 ```
-scripts/kernel-run.sh
+./hack kernel-run
 ```
 The kernel will boot, and spawn a login shell. Then you can start hacking. 
 
@@ -87,20 +77,20 @@ The kernel will boot, and spawn a login shell. Then you can start hacking.
 ### (Optional) Install Modules
 You can install modules to the running qemu instance to safely use kernel module functionalities by running
 ```
-scripts/kernel-module-install.sh
+./hack kernel-module-install
 ```
 
 
 ### (Optional) Using SSH Utilities
 You can ssh to the running qemu instance with
 ```
-scripts/kernel-ssh.sh
+./hack kernel-ssh
 ```
 or sftp to int with
 ```
-scripts/kernel-sftp.sh
+./hack kernel-sftp
 ``` 
 you can also use a helper script to send file or directories to the running qemu instance
 ```
-scripts/kernel-sync.sh SRC [DST] # DST is optional, the file will be extracted to /root by default
+./hack kernel-sync SRC [DST] # DST is optional, the file will be extracted to /root by default
 ```
