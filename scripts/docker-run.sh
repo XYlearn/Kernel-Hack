@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ROOT=`realpath $(dirname $0)/..`
 DOCKER_DIR=$ROOT/dockers
 
