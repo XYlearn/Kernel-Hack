@@ -258,10 +258,7 @@ kernel-sync () {
 	SOURCE=$1
 	DEST=$2
 
-	if [[ -d $SOURCE ]]; then
-		BASENAME=`basename $SOURCE`
-		cd $SOURCE && tar cf - . | kernel-ssh "cd $DEST && tar xf -"
-	elif [[ -f $SOURCE ]]; then
+	if [[ -e $SOURCE ]]; then
 		SOURCE_DIR=`dirname $SOURCE`
 		SOURCE_BASE=`basename $SOURCE`
 		cd $SOURCE_DIR && tar cf - $SOURCE_BASE | kernel-ssh "cd $DEST && tar xf -"
