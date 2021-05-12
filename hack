@@ -70,6 +70,31 @@ disk-build () {
 	rm -r $TEMPDIR
 }
 
+disk-resize () {
+  if [[ $# != 1 ]]; then
+    echo "Usage $0 $SUBCOMMAND SIZE"
+    echo "  SIZE: Gigabytes number"
+  fi
+
+  GIGA=$1
+  NEW_SIZE=$(($GIGA*1024))
+  if [[ $NEW_SIZE -le 0 ]]; then
+    echo "Invalid size '$GIGA'. It must be a positive number."
+    exit
+  fi
+
+  CMD="resize2fs $IMAGE_DIR/disk.img ${NEW_SIZE}M"
+  echo $CMD
+  read -p "Are you sure?(y/N) " -n 1 -r
+  echo    # (optional) move to a new line
+  if [[ $REPLY =~ ^[Yy]$ ]]
+  then
+    $CMD
+  else
+    echo "Abort"
+  fi
+}
+
 
 #################################
 # docker subcommand
@@ -298,6 +323,7 @@ usage () {
 	echo "$0 Command [Args ...]"
 	echo "Avaiable commands:"
 	echo "  disk-build            : build a debian filesystem image"
+  echo "  disk-resize           : resize the created filesystem image"
   echo "  docker-build          : build a docker for kernel building"
   echo "  docker-run            : run the built docker"
 	echo "  kernel-source-prepare : download and extract source code of kernel"
@@ -321,6 +347,9 @@ case $SUBCOMMAND in
 	disk-build)
 		disk-build $@
 		;;
+  disk-resize)
+    disk-resize $@
+    ;;
 	docker-build)
 		docker-build $@
 		;;
