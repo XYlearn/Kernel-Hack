@@ -243,6 +243,13 @@ kernel-run () {
 		IMAGE_DIR=$ROOT/images
 	fi
 
+  unamestr=`uname`
+	if [[ "$unamestr" == 'Darwin' ]]; then
+    DEFAULT_ACCEL=hvf
+  else
+    DEFAULT_ACCEL=kvm
+  fi
+
 	qemu-system-x86_64 \
 		-m 2G \
 		-smp 2 \
@@ -251,10 +258,26 @@ kernel-run () {
 		-drive file=$IMAGE_DIR/disk.img,format=raw \
 		-net user,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10021-:22 \
 		-net nic,model=e1000 \
-		-accel hvf \
+		-accel $DEFAULT_ACCEL \
 		-nographic \
 		-pidfile vm.pid \
 		2>&1 | tee vm.log
+}
+
+_kernel-host() {
+  # get host of 
+  if nc -zv localhost 10021 >/dev/null 2>&1; then
+    echo "localhost"
+    return
+  fi
+
+  if nc -zv host.docker.internal 10021 >/dev/null 2>&1; then
+    # docker to host
+    echo "host.docker.internal"
+    return
+  else
+    return 
+  fi
 }
 
 kernel-ssh () {
@@ -262,7 +285,8 @@ kernel-ssh () {
 		echo "Please run kernel with disk image created with this script"
 		exit
 	fi
-	ssh -i $ROOT/images/ssh.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost "$@"
+  
+	ssh -i $ROOT/images/ssh.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@`_kernel-host` "$@"
 }
 
 kernel-sftp () {
@@ -270,7 +294,7 @@ kernel-sftp () {
 		echo "Please run kernel with disk image created with this script"
 		exit
 	fi
-	sftp -i $ROOT/images/ssh.id_rsa -P 10021 -o "StrictHostKeyChecking no" root@localhost
+	sftp -i $ROOT/images/ssh.id_rsa -P 10021 -o "StrictHostKeyChecking no" root@`_kernel-host`
 }
 
 kernel-sync () {
