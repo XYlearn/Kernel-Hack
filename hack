@@ -215,6 +215,30 @@ CONFIG_KASAN_INLINE=y
 # Required for Debian Stretch
 CONFIG_CONFIGFS_FS=y
 CONFIG_SECURITYFS=y
+
+# Enable eBPF
+
+CONFIG_BPF=y
+CONFIG_BPF_SYSCALL=y
+# [optional, for tc filters]
+CONFIG_NET_CLS_BPF=m
+# [optional, for tc actions]
+CONFIG_NET_ACT_BPF=m
+CONFIG_BPF_JIT=y
+# [for Linux kernel versions 4.1 through 4.6]
+CONFIG_HAVE_BPF_JIT=y
+# [for Linux kernel versions 4.7 and later]
+CONFIG_HAVE_EBPF_JIT=y
+# [optional, for kprobes]
+CONFIG_BPF_EVENTS=y
+
+## There are a few optional kernel flags needed for running bcc networking examples on vanilla kernel:
+
+CONFIG_NET_SCH_SFQ=m
+CONFIG_NET_ACT_POLICE=m
+CONFIG_NET_ACT_GACT=m
+CONFIG_DUMMY=m
+CONFIG_VXLAN=m
 EOF
 	make olddefconfig
 
