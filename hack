@@ -20,29 +20,29 @@ popd () {
 }
 
 unzip-strip() (
-  # From https://superuser.com/questions/518347/equivalent-to-tars-strip-components-1-in-unzip
-  set -eu
-  local archive=$1
-  local destdir=${2:-}
-  shift; shift || :
-  local tmpdir=$(mktemp -d)
-  trap 'rm -rf -- "$tmpdir"' EXIT
-  unzip -qd "$tmpdir" -- "$archive"
-  shopt -s dotglob
-  local files=("$tmpdir"/*) name i=1
-  if (( ${#files[@]} == 1 )) && [[ -d "${files[0]}" ]]; then
-      name=$(basename "${files[0]}")
-      files=("$tmpdir"/*/*)
-  else
-      name=$(basename "$archive"); name=${archive%.*}
-      files=("$tmpdir"/*)
-  fi
-  if [[ -z "$destdir" ]]; then
-      destdir=./"$name"
-  fi
-  while [[ -f "$destdir" ]]; do destdir=${destdir}-$((i++)); done
-  mkdir -p "$destdir"
-  cp -ar "$@" -t "$destdir" -- "${files[@]}"
+	# From https://superuser.com/questions/518347/equivalent-to-tars-strip-components-1-in-unzip
+	set -eu
+	local archive=$1
+	local destdir=${2:-}
+	shift; shift || :
+	local tmpdir=$(mktemp -d)
+	trap 'rm -rf -- "$tmpdir"' EXIT
+	unzip -qd "$tmpdir" -- "$archive"
+	shopt -s dotglob
+	local files=("$tmpdir"/*) name i=1
+	if (( ${#files[@]} == 1 )) && [[ -d "${files[0]}" ]]; then
+		name=$(basename "${files[0]}")
+		files=("$tmpdir"/*/*)
+	else
+		name=$(basename "$archive"); name=${archive%.*}
+		files=("$tmpdir"/*)
+	fi
+	if [[ -z "$destdir" ]]; then
+		destdir=./"$name"
+	fi
+	while [[ -f "$destdir" ]]; do destdir=${destdir}-$((i++)); done
+	mkdir -p "$destdir"
+	cp -ar "$@" -t "$destdir" -- "${files[@]}"
 )
 
 
@@ -71,28 +71,28 @@ disk-build () {
 }
 
 disk-resize () {
-  if [[ $# != 1 ]]; then
-    echo "Usage $0 $SUBCOMMAND SIZE"
-    echo "  SIZE: Gigabytes number"
-  fi
+	if [[ $# != 1 ]]; then
+		echo "Usage $0 $SUBCOMMAND SIZE"
+		echo "  SIZE: Gigabytes number"
+	fi
 
-  GIGA=$1
-  NEW_SIZE=$(($GIGA*1024))
-  if [[ $NEW_SIZE -le 0 ]]; then
-    echo "Invalid size '$GIGA'. It must be a positive number."
-    exit
-  fi
+	GIGA=$1
+	NEW_SIZE=$(($GIGA*1024))
+	if [[ $NEW_SIZE -le 0 ]]; then
+		echo "Invalid size '$GIGA'. It must be a positive number."
+		exit
+	fi
 
-  CMD="resize2fs $IMAGE_DIR/disk.img ${NEW_SIZE}M"
-  echo $CMD
-  read -p "Are you sure?(y/N) " -n 1 -r
-  echo    # (optional) move to a new line
-  if [[ $REPLY =~ ^[Yy]$ ]]
-  then
-    $CMD
-  else
-    echo "Abort"
-  fi
+	CMD="resize2fs $IMAGE_DIR/disk.img ${NEW_SIZE}M"
+	echo $CMD
+	read -p "Are you sure?(y/N) " -n 1 -r
+	echo    # (optional) move to a new line
+	if [[ $REPLY =~ ^[Yy]$ ]]
+	then
+		$CMD
+	else
+		echo "Abort"
+	fi
 }
 
 
@@ -189,12 +189,30 @@ kernel-source-prepare () {
 }
 
 kernel-build () {
-	if [[ $# != 1 ]]; then
-		echo "Usage: $0 $SUBCOMMAND IDENTIFIER"
+	if [[ $# < 1 ]]; then
+		echo "Usage: $0 $SUBCOMMAND [-j threads] IDENTIFIER"
 		exit
 	fi
 
+	while :; do
+		case $1 in
+			-j)
+				THREADS=$2
+				shift
+				shift
+				;;
+			*)
+				break
+				;;
+		esac
+	done
+
 	IDEN=$1
+
+	if [[ ! -d $SOURCE_DIR/$IDEN ]]; then
+		echo "Invalid argument '$1' or the source is not prepared. Try download it with '$0 kernel-source-prepare $IDEN'"
+		exit
+	fi
 
 	pushd "$SOURCE_DIR/$IDEN"
 
@@ -267,12 +285,12 @@ kernel-run () {
 		IMAGE_DIR=$ROOT/images
 	fi
 
-  unamestr=`uname`
+	unamestr=`uname`
 	if [[ "$unamestr" == 'Darwin' ]]; then
-    DEFAULT_ACCEL=hvf
-  else
-    DEFAULT_ACCEL=kvm
-  fi
+		DEFAULT_ACCEL=hvf
+	else
+		DEFAULT_ACCEL=kvm
+	fi
 
 	qemu-system-x86_64 \
 		-m 2G \
@@ -289,19 +307,19 @@ kernel-run () {
 }
 
 _kernel-host() {
-  # get host of 
-  if nc -zv localhost 10021 >/dev/null 2>&1; then
-    echo "localhost"
-    return
-  fi
+	# get host of 
+	if nc -zv localhost 10021 >/dev/null 2>&1; then
+		echo "localhost"
+		return
+	fi
 
-  if nc -zv host.docker.internal 10021 >/dev/null 2>&1; then
-    # docker to host
-    echo "host.docker.internal"
-    return
-  else
-    return 
-  fi
+	if nc -zv host.docker.internal 10021 >/dev/null 2>&1; then
+		# docker to host
+		echo "host.docker.internal"
+		return
+	else
+		return 
+	fi
 }
 
 kernel-ssh () {
@@ -309,7 +327,7 @@ kernel-ssh () {
 		echo "Please run kernel with disk image created with this script"
 		exit
 	fi
-  
+
 	ssh -i $ROOT/images/ssh.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@`_kernel-host` "$@"
 }
 
@@ -371,16 +389,16 @@ usage () {
 	echo "$0 Command [Args ...]"
 	echo "Avaiable commands:"
 	echo "  disk-build            : build a debian filesystem image"
-  echo "  disk-resize           : resize the created filesystem image"
-  echo "  docker-build          : build a docker for kernel building"
-  echo "  docker-run            : run the built docker"
+	echo "  disk-resize           : resize the created filesystem image"
+	echo "  docker-build          : build a docker for kernel building"
+	echo "  docker-run            : run the built docker"
 	echo "  kernel-source-prepare : download and extract source code of kernel"
-  echo "  kernel-build          : build kernel"
+	echo "  kernel-build          : build kernel"
 	echo "  kernel-run            : run the docker"
-  echo "  kernel-ssh            : ssh to running kernel"
-  echo "  kernel-sftp           : sftp to running kernel"
+	echo "  kernel-ssh            : ssh to running kernel"
+	echo "  kernel-sftp           : sftp to running kernel"
 	echo "  kernel-sync           : send files to running kernel"
-  echo "  kernel-module-install : install module into the running kernel"
+	echo "  kernel-module-install : install module into the running kernel"
 }
 
 POSITIONAL=()
@@ -395,9 +413,9 @@ case $SUBCOMMAND in
 	disk-build)
 		disk-build $@
 		;;
-  disk-resize)
-    disk-resize $@
-    ;;
+	disk-resize)
+		disk-resize $@
+		;;
 	docker-build)
 		docker-build $@
 		;;
