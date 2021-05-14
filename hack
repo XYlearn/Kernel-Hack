@@ -19,7 +19,7 @@ popd () {
 	command popd "$@" > /dev/null
 }
 
-unzip-strip() (
+unzip-strip () (
 	# From https://superuser.com/questions/518347/equivalent-to-tars-strip-components-1-in-unzip
 	set -eu
 	local archive=$1
@@ -45,6 +45,27 @@ unzip-strip() (
 	cp -ar "$@" -t "$destdir" -- "${files[@]}"
 )
 
+prepare-directories () {
+	mkdir -p $IMAGE_DIR $DOWNLOAD_DIR
+
+	# Create directory, only considering macos and linux
+	platform='unknown'
+	unamestr=`uname`
+	if [[ "$unamestr" == 'Darwin' ]]; then
+		# If on macos, the directory should be created with a case sensitive image
+		IMAGE=$ROOT/sources.sparseimage
+		if [[ ! -e $IMAGE ]]; then
+			hdiutil create -type SPARSE -fs 'Case-sensitive Journaled HFS+' -size 100g -volname sources $IMAGE
+		fi
+		if [[ ! -h $SOURCE_DIR ]]; then
+			ln -s /Volumes/sources $SOURCE_DIR
+		fi
+		hdiutil attach $IMAGE >/dev/null 2>&1
+	else
+		# Just create a directory
+		mkdir -p $SOURCE_DIR
+	fi
+}
 
 #################################
 # disk subcommand
@@ -140,29 +161,10 @@ kernel-source-prepare () {
 	fi
 
 	IDEN=$1
-
-	# Create directory, only considering macos and linux
-	platform='unknown'
-	unamestr=`uname`
-	if [[ "$unamestr" == 'Darwin' ]]; then
-		# If on macos, the directory should be created with a case sensitive image
-		IMAGE=$ROOT/sources.sparseimage
-		if [[ ! -e $IMAGE ]]; then
-			hdiutil create -type SPARSE -fs 'Case-sensitive Journaled HFS+' -size 100g -volname sources $IMAGE
-		fi
-		if [[ ! -e $SOURCE_DIR ]]; then
-			ln -s /Volumes/sources $SOURCE_DIR
-		fi
-		hdiutil attach $IMAGE >/dev/null 2>&1
-	else
-		# Just create a directory
-		if [[ ! -d $SOURCE_DIR ]]; then
-			mkdir -p $SOURCE_DIR
-		fi
-	fi
+	NAME=linux-$IDEN
 
 	# Download zip
-	if [[ ! -f "$DOWNLOAD_DIR/$IDEN.zip" ]];then
+	if [[ ! -f "$DOWNLOAD_DIR/$NAME.zip" ]];then
 		if [[ $IDEN =~ ^v[0-9\.-]+((rc[0-9]+)|(tree))?$ ]]; then
 			# Tag
 			URL="https://github.com/torvalds/linux/archive/refs/tags/$IDEN.zip"
@@ -171,7 +173,7 @@ kernel-source-prepare () {
 			URL="https://github.com/torvalds/linux/archive/$IDEN.zip"
 		fi
 		
-		wget_success=`wget $URL -q --show-progress -P "$DOWNLOAD_DIR"`
+		wget_success=`wget $URL -q --show-progress -P "$DOWNLOAD_DIR" -O $DOWNLOAD_DIR/$NAME.zip`
 		if [[ $? -ne 0 ]]; then
 			echo "[-] Fail to download from $URL"
 			exit 1
@@ -181,10 +183,10 @@ kernel-source-prepare () {
 	fi
 
 	# Extract zip
-	TARGET_ROOT="$SOURCE_DIR/$IDEN"
+	TARGET_ROOT="$SOURCE_DIR/$NAME"
 	if [[ ! -d $TARGET_ROOT ]]; then
 		mkdir -p $TARGET_ROOT
-		unzip-strip "$DOWNLOAD_DIR/$IDEN.zip" $TARGET_ROOT
+		unzip-strip "$DOWNLOAD_DIR/$NAME.zip" $TARGET_ROOT
 	fi
 }
 
@@ -208,13 +210,14 @@ kernel-build () {
 	done
 
 	IDEN=$1
+	NAME=linux-$IDEN
 
-	if [[ ! -d $SOURCE_DIR/$IDEN ]]; then
-		echo "Invalid argument '$1' or the source is not prepared. Try download it with '$0 kernel-source-prepare $IDEN'"
+	if [[ ! -d $SOURCE_DIR/$NAME ]]; then
+		echo "Invalid argument '$IDEN' or the source is not prepared. Try download it with '$0 kernel-source-prepare $IDEN'"
 		exit
 	fi
 
-	pushd "$SOURCE_DIR/$IDEN"
+	pushd "$SOURCE_DIR/$NAME"
 
 	# Configuration
 	make defconfig
@@ -261,10 +264,10 @@ EOF
 	make olddefconfig
 
 	# Build image
-	make -j8 && cp arch/x86_64/boot/bzImage $IMAGE_DIR/$IDEN.img
+	make -j8 && cp arch/x86_64/boot/bzImage $IMAGE_DIR/$NAME.img
 
 	# Build modules
-	INSTALL_MOD_PATH=$IMAGE_DIR/modules-$IDEN
+	INSTALL_MOD_PATH=$IMAGE_DIR/modules-$NAME
 	mkdir -p $INSTALL_MOD_PATH
 	make modules_install INSTALL_MOD_PATH=$INSTALL_MOD_PATH
 
@@ -278,6 +281,7 @@ kernel-run () {
 	fi
 
 	IDEN=$1
+	NAME=linux-$IDEN
 
 	if [[ -d $ROOT/o ]]; then
 		IMAGE_DIR=$ROOT/o/images
@@ -295,7 +299,7 @@ kernel-run () {
 	qemu-system-x86_64 \
 		-m 2G \
 		-smp 2 \
-		-kernel $IMAGE_DIR/$IDEN.img \
+		-kernel $IMAGE_DIR/$NAME.img \
 		-append "console=ttyS0 root=/dev/sda earlyprintk=serial net.ifnames=0" \
 		-drive file=$IMAGE_DIR/disk.img,format=raw \
 		-net user,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10021-:22 \
@@ -366,24 +370,23 @@ kernel-module-install () {
 	fi
 
 	IDEN=$1
+	NAME=linux-$IDEN
 	SOURCE=$ROOT/images/modules-$IDEN/lib
 
 	if [[ ! -d $SOURCE ]];then
-		echo "Build kernel for $IDEN first"
+		echo "Build kernel for $IDEN first with '$0 kernel-build $IDEN'"
 		exit -1
 	fi
 
 	cd $SOURCE/.. && tar cf - lib | kernel-ssh 'cd / && tar xf -'
 	kernel-ssh 'cd /lib/modules/* && unlink build && unlink source && mkdir source && ln -s ./source ./build'
-	cd $ROOT/sources/$IDEN && tar cf - . | kernel-ssh 'cd /lib/modules/*/source && tar xf -'
+	cd $ROOT/sources/$NAME && tar cf - . | kernel-ssh 'cd /lib/modules/*/source && tar xf -'
 }
 
 
 #################################
 # Argument parsing
 #################################
-
-complete 
 
 usage () {
 	echo "$0 Command [Args ...]"
@@ -400,6 +403,8 @@ usage () {
 	echo "  kernel-sync           : send files to running kernel"
 	echo "  kernel-module-install : install module into the running kernel"
 }
+
+prepare-directories
 
 POSITIONAL=()
 if [[ $# == 0 ]]; then
