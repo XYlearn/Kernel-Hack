@@ -67,6 +67,25 @@ prepare-directories () {
 	fi
 }
 
+my-download () {
+	if [[ $# != 2 ]]; then
+		echo "Internal error: download $@"
+		return 1
+	fi
+
+	URL=$1
+	TARGET=$2
+	wget $URL -q --show-progress -P "$DOWNLOAD_DIR" -O $TARGET
+	STATUS=$?
+	if [[ $STATUS -ne 0 ]]; then
+		echo "[-] Fail to download from $URL"
+		rm $TARGET
+	else
+		echo "[+] Download success from $URL"
+	fi
+	return $STATUS
+}
+
 #################################
 # disk subcommand
 #################################
@@ -173,12 +192,9 @@ kernel-source-prepare () {
 			URL="https://github.com/torvalds/linux/archive/$IDEN.zip"
 		fi
 		
-		wget_success=`wget $URL -q --show-progress -P "$DOWNLOAD_DIR" -O $DOWNLOAD_DIR/$NAME.zip`
+		my-download $URL $DOWNLOAD_DIR/$NAME.zip
 		if [[ $? -ne 0 ]]; then
-			echo "[-] Fail to download from $URL"
-			exit 1
-		else
-			echo "[+] Download success from $URL"
+			exit
 		fi
 	fi
 
@@ -385,6 +401,64 @@ kernel-module-install () {
 
 
 #################################
+# llvm subcommand
+#################################
+
+llvm-source-prepare () {
+	if [[ $# != 1 ]]; then
+		echo "Usage: $0 $SUBCOMMAND TAG"
+		exit
+	fi
+
+	TAG=$1
+
+	LLVM_SOURCE_TAR="llvm-$TAG.src.tar.xz"
+	CLANG_SOURCE_TAR="clang-$TAG.src.tar.xz"
+	LLVM_SOURCE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-$TAG/$LLVM_SOURCE_TAR"
+	CLANG_SOURCE_URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-$TAG/$CLANG_SOURCE_TAR"
+
+	if [[ ! -e $DOWNLOAD_DIR/$LLVM_SOURCE_TAR ]]; then
+		my-download $LLVM_SOURCE_URL $DOWNLOAD_DIR/$LLVM_SOURCE_TAR || exit
+	fi
+
+	if [[ ! -e $DOWNLOAD_DIR/$CLANG_SOURCE_TAR ]]; then
+		my-download $CLANG_SOURCE_URL $DOWNLOAD_DIR/$CLANG_SOURCE_TAR || exit
+	fi
+
+	LLVM_SOURCE=llvm-$TAG.src
+	CLANG_SOURCE=clang-$TAG.src
+	if [[ ! -e $SOURCE_DIR/$LLVM_SOURCE ]]; then
+		tar xf $DOWNLOAD_DIR/$LLVM_SOURCE_TAR -C $SOURCE_DIR || exit
+	fi
+	
+	if [[ ! -e $SOURCE_DIR/$LLVM_SOURCE ]]; then
+		tar xf $DOWNLOAD_DIR/$CLANG_SOURCE_TAR -C $SOURCE_DIR && mv $SOURCE_DIR/$CLANG_SOURCE $SOURCE_DIR/$LLVM_SOURCE/tools/clang || exit
+	fi
+}
+
+llvm-build () {
+	if [[ $# != 1 ]]; then
+		echo "Usage: $0 $SUBCOMMAND TAG"
+		exit
+	fi
+
+	TAG=$1
+	llvm-source-prepare $TAG
+
+	LLVM_SOURCE_DIR=$SOURCE_DIR/llvm-$TAG.src
+	
+	BUILD_DIR=$LLVM_SOURCE_DIR/_build
+	mkdir -p $BUILD_DIR
+	pushd $BUILD_DIR
+	cd _build
+	cmake -G "Unix Makefiles" --enable-optimized --enable-targets=host-only  -DCMAKE_BUILD_TYPE=Release  .. && \
+	make -j8
+	# sudo make install
+	popd
+}
+
+
+#################################
 # Argument parsing
 #################################
 
@@ -402,6 +476,8 @@ usage () {
 	echo "  kernel-sftp           : sftp to running kernel"
 	echo "  kernel-sync           : send files to running kernel"
 	echo "  kernel-module-install : install module into the running kernel"
+	echo "  llvm-source-prepare   : download and extract source code of llvm+clang"
+	echo "  llvm-build            : build llvm+clang from source"
 }
 
 prepare-directories
@@ -447,6 +523,12 @@ case $SUBCOMMAND in
 		;;
 	kernel-module-install)
 		kernel-module-install $@
+		;;
+	llvm-source-prepare)
+		llvm-source-prepare $@
+		;;
+	llvm-build)
+		llvm-build $@
 		;;
 	*)
 		usage
