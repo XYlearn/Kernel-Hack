@@ -450,7 +450,6 @@ llvm-build () {
 	BUILD_DIR=$LLVM_SOURCE_DIR/_build
 	mkdir -p $BUILD_DIR
 	pushd $BUILD_DIR
-	cd _build
 	cmake -G "Unix Makefiles" --enable-optimized --enable-targets=host-only  -DCMAKE_BUILD_TYPE=Release  .. && \
 	make -j8
 	# sudo make install
