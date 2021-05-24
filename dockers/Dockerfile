@@ -51,7 +51,10 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
 # llvm+clang & wllvm
-RUN apt-get install -y llvm clang
+RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz && \
+		tar -xf clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --strip-components=1 -C /usr/local && \
+		rm clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+# RUN apt-get install -y llvm clang
 RUN python3 -m pip install wllvm
 ENV LLVM_COMPILER=clang
 ENV WLLVM_OUTPUT_LEVEL=WARNING
