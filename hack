@@ -208,10 +208,12 @@ kernel-source-prepare () {
 
 kernel-build () {
 	if [[ $# < 1 ]]; then
-		echo "Usage: $0 $SUBCOMMAND [-j threads] IDENTIFIER"
+		echo "Usage: $0 $SUBCOMMAND [-j threads] [-l] IDENTIFIER"
 		exit
 	fi
 
+	THREADS=8
+	BUILD_IR=false
 	while :; do
 		case $1 in
 			-j)
@@ -219,11 +221,22 @@ kernel-build () {
 				shift
 				shift
 				;;
+			-l)
+				BUILD_IR=true
+				shift
+				;;
 			*)
 				break
 				;;
 		esac
 	done
+	MAKE_PARAMS="-j $THREADS "
+	if [[ $BUILD_IR = true ]]; then
+		export LLVM_COMPILER=clang
+		export WLLVM_OUTPUT_LEVEL=WARNING
+		export WLLVM_OUTPUT_FILE=/tmp/wrapper.log
+		MAKE_PARAMS+="CC=wllvm HOSTCC=wllvm"
+	fi
 
 	IDEN=$1
 	NAME=linux-$IDEN
@@ -236,8 +249,8 @@ kernel-build () {
 	pushd "$SOURCE_DIR/$NAME"
 
 	# Configuration
-	make defconfig
-	make kvmconfig
+	make $MAKE_PARAMS defconfig
+	# make $MAKE_PARAMS kvmconfig
 	cat << EOF >> .config
 # Coverage collection.
 CONFIG_KCOV=y
@@ -277,15 +290,21 @@ CONFIG_NET_ACT_GACT=m
 CONFIG_DUMMY=m
 CONFIG_VXLAN=m
 EOF
-	make olddefconfig
+	make $MAKE_PARAMS olddefconfig
 
 	# Build image
-	make -j8 && cp arch/x86_64/boot/bzImage $IMAGE_DIR/$NAME.img
+	make $MAKE_PARAMS && cp arch/x86_64/boot/bzImage $IMAGE_DIR/$NAME.img
+
+	# Extract bc
+	if [ $BUILD_IR = true ]; then
+		extract-bc -m -b built-in.o
+		extract-bc -m vmlinux
+	fi
 
 	# Build modules
 	INSTALL_MOD_PATH=$IMAGE_DIR/modules-$NAME
 	mkdir -p $INSTALL_MOD_PATH
-	make modules_install INSTALL_MOD_PATH=$INSTALL_MOD_PATH
+	make $MAKE_PARAMS modules_install INSTALL_MOD_PATH=$INSTALL_MOD_PATH
 
 	popd
 }
@@ -436,7 +455,7 @@ llvm-source-prepare () {
 	fi
 }
 
-llvm-build () {
+llvm-build-install () {
 	if [[ $# != 1 ]]; then
 		echo "Usage: $0 $SUBCOMMAND TAG"
 		exit
@@ -450,10 +469,9 @@ llvm-build () {
 	BUILD_DIR=$LLVM_SOURCE_DIR/_build
 	mkdir -p $BUILD_DIR
 	pushd $BUILD_DIR
-	cd _build
 	cmake -G "Unix Makefiles" --enable-optimized --enable-targets=host-only  -DCMAKE_BUILD_TYPE=Release  .. && \
 	make -j8
-	# sudo make install
+	make install
 	popd
 }
 
@@ -477,7 +495,7 @@ usage () {
 	echo "  kernel-sync           : send files to running kernel"
 	echo "  kernel-module-install : install module into the running kernel"
 	echo "  llvm-source-prepare   : download and extract source code of llvm+clang"
-	echo "  llvm-build            : build llvm+clang from source"
+	echo "  llvm-build-install    : build and install llvm+clang from source"
 }
 
 prepare-directories
@@ -527,8 +545,8 @@ case $SUBCOMMAND in
 	llvm-source-prepare)
 		llvm-source-prepare $@
 		;;
-	llvm-build)
-		llvm-build $@
+	llvm-build-install)
+		llvm-build-install $@
 		;;
 	*)
 		usage
