@@ -207,11 +207,6 @@ kernel-source-prepare () {
 }
 
 kernel-build () {
-	if [[ $# < 1 ]]; then
-		echo "Usage: $0 $SUBCOMMAND [-j threads] [-l] IDENTIFIER"
-		exit
-	fi
-
 	THREADS=8
 	BUILD_IR=false
 	while :; do
@@ -230,6 +225,11 @@ kernel-build () {
 				;;
 		esac
 	done
+	if [[ $# != 1 ]]; then
+		echo "Usage: $0 $SUBCOMMAND [-j threads] [-l] IDENTIFIER"
+		exit
+	fi
+
 	MAKE_PARAMS="-j $THREADS "
 	if [[ $BUILD_IR = true ]]; then
 		export LLVM_COMPILER=clang
