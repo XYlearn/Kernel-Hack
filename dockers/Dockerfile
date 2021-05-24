@@ -50,6 +50,13 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
+# llvm+clang & wllvm
+RUN apt-get install -y llvm clang
+RUN python3 -m pip install wllvm
+ENV LLVM_COMPILER=clang
+ENV WLLVM_OUTPUT_LEVEL=WARNING
+ENV WLLVM_OUTPUT_FILE=/tmp/wrapper.log
+
 # install tools for kernel pacakge building
 # RUN apt-get install -y --force-yes fakeroot kernel-package
 
