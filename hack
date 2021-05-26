@@ -86,14 +86,14 @@ my-download () {
 	return $STATUS
 }
 
-nproc () [
+nproc () {
 	if [[ `uname` = Linux ]]; then
 		NPROC=${shell nproc}
 	else
 		NPROC=${shell sysctl -n hw.ncpu}
 	fi
 	echo $NPROC
-]
+}
 
 #################################
 # disk subcommand
