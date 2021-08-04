@@ -86,6 +86,15 @@ my-download () {
 	return $STATUS
 }
 
+nproc () {
+	if [[ `uname` = Linux ]]; then
+		NPROC=${shell nproc}
+	else
+		NPROC=${shell sysctl -n hw.ncpu}
+	fi
+	echo $NPROC
+}
+
 #################################
 # disk subcommand
 #################################
@@ -207,12 +216,12 @@ kernel-source-prepare () {
 }
 
 kernel-build () {
-	THREADS=8
+	NPROC=`nproc || echo 8`
 	BUILD_IR=false
 	while :; do
 		case $1 in
 			-j)
-				THREADS=$2
+				NPROC=$2
 				shift
 				shift
 				;;
@@ -226,11 +235,11 @@ kernel-build () {
 		esac
 	done
 	if [[ $# != 1 ]]; then
-		echo "Usage: $0 $SUBCOMMAND [-j threads] [-l] IDENTIFIER"
+		echo "Usage: $0 $SUBCOMMAND [-j nproc] [-l] IDENTIFIER"
 		exit
 	fi
 
-	MAKE_PARAMS="-j $THREADS "
+	MAKE_PARAMS="-j $NPROC "
 	if [[ $BUILD_IR = true ]]; then
 		export LLVM_COMPILER=clang
 		export WLLVM_OUTPUT_LEVEL=WARNING
@@ -289,6 +298,9 @@ CONFIG_NET_ACT_POLICE=m
 CONFIG_NET_ACT_GACT=m
 CONFIG_DUMMY=m
 CONFIG_VXLAN=m
+
+# debug
+CONFIG_DEBUG_INFO=y
 EOF
 	make $MAKE_PARAMS olddefconfig
 
@@ -460,7 +472,7 @@ llvm-source-prepare () {
 
 llvm-build-install () {
 
-	THREADS=8
+	THREADS=`nproc`
 	while :; do
 		case $1 in
 			-j)
