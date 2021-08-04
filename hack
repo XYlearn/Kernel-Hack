@@ -450,14 +450,32 @@ llvm-source-prepare () {
 		tar xf $DOWNLOAD_DIR/$LLVM_SOURCE_TAR -C $SOURCE_DIR || exit
 	fi
 	
-	if [[ ! -e $SOURCE_DIR/$LLVM_SOURCE ]]; then
-		tar xf $DOWNLOAD_DIR/$CLANG_SOURCE_TAR -C $SOURCE_DIR && mv $SOURCE_DIR/$CLANG_SOURCE $SOURCE_DIR/$LLVM_SOURCE/tools/clang || exit
+	if [[ ! -e $SOURCE_DIR/$LLVM_SOURCE/tools/clang ]]; then
+		if [[ ! -e $SOURCE_DIR/$CLANG_SOURCE ]]; then
+			tar xf $DOWNLOAD_DIR/$CLANG_SOURCE_TAR -C $SOURCE_DIR || exit
+		fi
+		mv $SOURCE_DIR/$CLANG_SOURCE $SOURCE_DIR/$LLVM_SOURCE/tools/clang || exit
 	fi
 }
 
 llvm-build-install () {
+
+	THREADS=8
+	while :; do
+		case $1 in
+			-j)
+				THREADS=$2
+				shift
+				shift
+				;;
+			*)
+				break
+				;;
+		esac
+	done
+
 	if [[ $# != 1 ]]; then
-		echo "Usage: $0 $SUBCOMMAND TAG"
+		echo "Usage: $0 $SUBCOMMAND [-j THREADS] TAG"
 		exit
 	fi
 
@@ -469,9 +487,9 @@ llvm-build-install () {
 	BUILD_DIR=$LLVM_SOURCE_DIR/_build
 	mkdir -p $BUILD_DIR
 	pushd $BUILD_DIR
-	cmake -G "Unix Makefiles" --enable-optimized --enable-targets=host-only  -DCMAKE_BUILD_TYPE=Release  .. && \
-	make -j8
-	make install
+	cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release  .. && \
+	make -j $THREADS && \
+	sudo make install
 	popd
 }
 
