@@ -71,7 +71,7 @@ Then run kernel with
 ```
 The kernel will boot, and spawn a login shell. Then you can start hacking. 
 
-**Note that** the script uses `hvf` for acceleration, which should be modified according to your case. You can run `qemu-system-x86_64 -accel help` to see acceleration that can be used. For example if `kvm` is in the output, you can adopt kvm acceleration by changing `-accel hvf` to `-accel kvm` in the script.
+**Note that** the script uses `hvf` for acceleration, which should be modified according to your case. You can run `qemu-system-x86_64 -accel help` to see acceleration that can be used. For example if `kvm` is in the output, you can adopt kvm acceleration with env variable ACCEL like `ACCEL=kvm ./hack kernel-run`. You can always use `ACCEL=tcg` for software virtualization.
 
 
 ### (Optional) Install Modules
