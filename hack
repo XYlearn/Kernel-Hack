@@ -337,9 +337,9 @@ kernel-run () {
 
 	unamestr=`uname`
 	if [[ "$unamestr" == 'Darwin' ]]; then
-		DEFAULT_ACCEL=hvf
+		ACCEL=${ACCEL:=hvf}
 	else
-		DEFAULT_ACCEL=kvm
+		ACCEL=${ACCEL:=kvm}
 	fi
 
 	qemu-system-x86_64 \
@@ -350,7 +350,7 @@ kernel-run () {
 		-drive file=$IMAGE_DIR/disk.img,format=raw \
 		-net user,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10021-:22 \
 		-net nic,model=e1000 \
-		-accel $DEFAULT_ACCEL \
+		-accel $ACCEL \
 		-nographic \
 		-pidfile vm.pid \
 		2>&1 | tee vm.log
