@@ -243,7 +243,7 @@ kernel-build () {
 		export LLVM_COMPILER=clang
 		export WLLVM_OUTPUT_LEVEL=WARNING
 		export WLLVM_OUTPUT_FILE=/tmp/wrapper.log
-		MAKE_PARAMS+="CC=wllvm HOSTCC=wllvm"
+		MAKE_PARAMS+="CC=gclang HOSTCC=gclang"
 	fi
 
 	IDEN=$1
