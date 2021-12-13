@@ -491,9 +491,10 @@ llvm-build-install () {
 	fi
 
 	TAG=$1
-	llvm-source-prepare $TAG
-
 	LLVM_SOURCE_DIR=$SOURCE_DIR/llvm-$TAG.src
+	if [[ ! -e $LLVM_SOURCE_DIR ]]; then
+		llvm-source-prepare $TAG
+	fi
 	
 	BUILD_DIR=$LLVM_SOURCE_DIR/_build
 	mkdir -p $BUILD_DIR
